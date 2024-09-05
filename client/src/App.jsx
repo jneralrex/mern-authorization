@@ -1,28 +1,29 @@
-import {Route, createBrowserRouter, createRoutesFromElements, RouterProvider} from 'react-router-dom'
+import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom'
 import Home from './pages/Home'
 import SignUp from './pages/SignUp'
 import SignIn from './pages/SignIn'
 import Profile from './pages/Profile'
 import About from './pages/About'
+import Nav from './components/navigation/Nav'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route>
-      <Route index element={<SignUp/>}/>
-      <Route path='signin' element={<SignIn/>}/>
-      <Route path='home' element={<Home/>}>
-      <Route path='profile' element={<Profile/>}/>
-      <Route path='about' element={<About/>}/>
+      <Route path='signup' element={<SignUp />} />
+      <Route path='sign-in' element={<SignIn />} />
+      <Route path='nav' element={<Nav />}>
+          <Route path='home' element={<Home />}/>
+          <Route path='profile' element={<Profile />} />
+          <Route path='about' element={<About />} />
       </Route>
     </Route>
   )
 )
 
 function App() {
-
   return (
     <>
-    <RouterProvider router={router}/>
+      <RouterProvider router={router} />
     </>
   )
 }
