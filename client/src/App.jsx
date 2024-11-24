@@ -8,19 +8,19 @@ import Nav from './components/navigation/Nav'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route>
-      <Route path='signup' element={<SignUp />} />
-      <Route path='sign-in' element={<SignIn />} />
-      <Route path='nav' element={<Nav />}>
-          <Route path='home' element={<Home />}/>
-          <Route path='profile' element={<Profile />} />
-          <Route path='about' element={<About />} />
+    <Route path="/">
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/sign-in" element={<SignIn />} />
+      <Route path="/nav" element={<Nav />}>
+        <Route path="home" element={<Home />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="about" element={<About />} />
       </Route>
     </Route>
   )
-)
+);
 
-function App() {
+const App = () => {
   return (
     <>
       <RouterProvider router={router} />
