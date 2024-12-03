@@ -16,9 +16,10 @@ connectDb();
 app.use(express.json());
 app.use(cookieParser());
 
-// Static Files Middleware
-app.use(express.static(path.join(__dirname, 'client', 'dist')));
+// Serve static files from the 'client/dist' folder
+app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
 
+// Serve the index.html file for all routes not matched by API routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
 });
@@ -46,7 +47,6 @@ app.use((err, req, res, next) => {
     message: errorMessage,
   });
 });
-console.log("path:",__dirname); // This will log the current working directory in your backend
 
 // Start Server
 app.listen(port, () => {
