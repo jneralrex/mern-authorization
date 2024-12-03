@@ -20,7 +20,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
 });
 
 // Routes
@@ -46,6 +46,7 @@ app.use((err, req, res, next) => {
     message: errorMessage,
   });
 });
+console.log("path:",__dirname); // This will log the current working directory in your backend
 
 // Start Server
 app.listen(port, () => {
