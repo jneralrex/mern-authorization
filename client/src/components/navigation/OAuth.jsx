@@ -68,10 +68,12 @@ import { app } from '../../firebase';
 import { useDispatch } from 'react-redux';
 import axios from 'axios';  // Make sure to import axios
 import { signInSuccess } from '../../redux/user/UserSlice';
+import { useNavigate } from 'react-router-dom';
 
 const OAuth = () => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleGoogleClick = async () => {
     setLoading(true);
@@ -89,13 +91,7 @@ const OAuth = () => {
 
       // Dispatch the user data (ensure the payload is correct)
       dispatch(signInSuccess(postRes.data));  // Pass postRes.data instead of the full response object
-
-      // Log the result if necessary
-      console.log(result);
-
-      // You can also access the user data like this
-      const user = result.user;
-      console.log("User:", user);
+      navigate(postRes.role === "admin" ? "/admin" : "/nav/home");
 
     } catch (error) {
       console.log("Could not register", error);

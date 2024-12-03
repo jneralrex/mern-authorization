@@ -9,7 +9,7 @@ const SignIn = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
-  const loading = user.loadingSignIn;
+  const loadingEvent = user.singInLoader;
 
   const [formData, setFormData] = useState({
     usernameOrEmail: "",
@@ -47,7 +47,7 @@ const SignIn = () => {
         password: "",
       });
       dispatch(signInSuccess(res.data));
-      navigate(user.role === "admin" ? "/admin" : "/nav/home");
+      navigate(user.role === "admin" ? "/admin" : "/nav/fyp");
     } catch (error) {
       dispatch(signInFailure(error.response?.data?.message || "Something went wrong!"));
     }
@@ -74,8 +74,8 @@ const SignIn = () => {
           onChange={handleChange}
           value={formData.password}
         />
-        <button disabled={loading} className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">
-          {loading ? "Loading..." : "Sign In"}
+        <button disabled={loadingEvent} className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">
+          {loadingEvent ? "Loading..." : "Sign In"}
         </button>
         <OAuth />
       </form>
