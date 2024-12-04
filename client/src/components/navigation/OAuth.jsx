@@ -91,7 +91,7 @@ const OAuth = () => {
 
       // Dispatch the user data (ensure the payload is correct)
       dispatch(signInSuccess(postRes.data));  // Pass postRes.data instead of the full response object
-      navigate(postRes.role === "admin" ? "/admin" : "/nav/home");
+      navigate(postRes.role === "admin" ? "/admin" : "/nav/fyp");
 
     } catch (error) {
       console.log("Could not register", error);
