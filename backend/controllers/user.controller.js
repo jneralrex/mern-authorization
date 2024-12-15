@@ -2,6 +2,67 @@ const { cloudinary } = require("../config/config");
 const User = require("../models/user.model");
 const asyncHandler = require("express-async-handler");
 
+
+// GET /api/users?page=1&limit=10
+const getAllUsers = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+
+  // Ensure that limit is a valid number and within range
+  const pageNumber = parseInt(page, 10);
+  const limitNumber = parseInt(limit, 10);
+
+  if (isNaN(pageNumber) || isNaN(limitNumber)) {
+    return res.status(400).json({ success: false, error: "Invalid pagination parameters" });
+  }
+
+  // Fetch users with pagination
+  const users = await User.find()
+    .skip((pageNumber - 1) * limitNumber) // Skip the previous pages
+    .limit(limitNumber) // Limit the number of users per page
+    .select("-password"); // Optionally exclude sensitive fields like password
+
+  // Count total users for pagination
+  const totalUsers = await User.countDocuments();
+
+  res.status(200).json({
+    success: true,
+    users,
+    totalUsers,
+    totalPages: Math.ceil(totalUsers / limitNumber),
+    currentPage: pageNumber,
+  });
+});
+
+// GET /api/users/:id
+const getUserById = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select("-password");
+
+  if (!user) {
+    return res.status(404).json({ success: false, error: "User not found" });
+  }
+
+  res.status(200).json({ success: true, user });
+});
+
+// PUT or PATCH /api/users/:id
+const updateUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body;
+
+  // Make sure required fields are provided
+  if (!updateData) {
+    return res.status(400).json({ success: false, error: "No data provided for update" });
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true });
+
+  if (!updatedUser) {
+    return res.status(404).json({ success: false, error: "User not found" });
+  }
+
+  res.status(200).json({ success: true, user: updatedUser });
+});
+
 // Utility Functions
 const uploadToCloudinary = async (file, folder, tags = []) => {
   try {
@@ -248,6 +309,9 @@ const rollBackImageWithErrors = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  getAllUsers,
+  getUserById,
+  updateUser,
   signUpload,
   updateProfilePhoto,
   uploadImages,

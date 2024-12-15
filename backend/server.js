@@ -5,6 +5,10 @@ const connectDb = require("./config/connectDb.js");
 const cookieParser = require("cookie-parser");
 const { config } = require("./config/config.js");
 const path = require("path");
+const http = require("http");
+const { Server } = require("socket.io");
+const Message = require("./models/message.schema.model.js");
+
 
 const app = express();
 const port = config.port;
@@ -17,19 +21,22 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Serve static files from the 'client/dist' folder
-app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
-
-// Serve the index.html file for all routes not matched by API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
-});
+app.use(express.static(path.join(__dirname, "..", "client", "dist")));
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/profile-picture-upload", userRoutes.uploadRoutes); // For signing Cloudinary uploads
-app.use("/api/profile-picture-update", userRoutes.profilePicPatchRoute); // For profile picture updates
-app.use("/api/image-management", userRoutes.rollbackRoutes); // For managing bad uploads
-app.use("/api/delete-account", userRoutes.deleteMyAccount); // For deleting accounts
+app.use("/api/get", userRoutes.getEveryUser);
+app.use("/api/get", userRoutes.getSingleUser);
+app.use("/api/patch", userRoutes.patchUser);
+app.use("/api/profile-picture-upload", userRoutes.uploadRoutes);
+app.use("/api/profile-picture-update", userRoutes.profilePicPatchRoute);
+app.use("/api/image-management", userRoutes.rollbackRoutes);
+app.use("/api/delete-account", userRoutes.deleteMyAccount);
+
+// Serve the index.html file for all routes not matched by API routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "client", "dist", "index.html"));
+});
 
 // Global Error Handler
 app.use((err, req, res, next) => {
@@ -48,7 +55,51 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
+// Create HTTP server for Socket.IO
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Replace with your frontend URL in production
+    methods: ["GET", "POST"],
+  },
+});
+
+// Listen for WebSocket connections
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  // Handle incoming messages
+  socket.on("send_message", async (data) => {
+    try {
+      // Save message to the database
+      const newMessage = new Message({
+        sender: data.senderId,
+        content: data.content,
+        room: data.room,
+      });
+
+      await newMessage.save();
+
+      // Emit the message to all connected clients
+      io.emit("receive_message", {
+        ...data,
+        timestamp: newMessage.timestamp, // Include timestamp if needed
+      });
+    } catch (err) {
+      console.error("Error saving message to database:", err);
+    }
+  });
+
+  // Handle user disconnection
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+
+// Start the server
+server.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 });

@@ -5,7 +5,22 @@ const {
   signUpload,
   rollBackImageWithErrors,
   deleteAccount,
+  getAllUsers,
+  getUserById,
+  updateUser,
 } = require("../controllers/user.controller");
+
+// Router for get all users
+const getEveryUser = express.Router();
+getEveryUser.get("/all-users", verifyToken, getAllUsers);
+
+// Router for get all users
+const getSingleUser = express.Router();
+getSingleUser.get("/individual-user/:id", verifyToken, getUserById);
+
+// Router for get all users
+const patchUser = express.Router();
+patchUser.patch("/individual-user/:id", verifyToken, updateUser);
 
 // Router for signing requests
 const uploadRoutes = express.Router();
@@ -23,6 +38,9 @@ const deleteMyAccount = express.Router();
 deleteMyAccount.delete("/delete/:id", verifyToken, deleteAccount); // POST /api/profile-picture-upload/rollback
 
 module.exports = {
+  getEveryUser,
+  getSingleUser,
+  patchUser,
   uploadRoutes,
   profilePicPatchRoute,
   rollbackRoutes,
