@@ -11,7 +11,7 @@ import { useSelector } from "react-redux";
 import { generateRoomId } from "../../../../backend/utils/roomId.js";
 import axios from "axios";
 
-const socket = io("http://localhost:3000"); // Replace with your backend URL
+const socket = io(); // Replace with your backend URL
 
 const MessageHolder = () => {
   const { currentUser } = useSelector((state) => state.user);
@@ -195,7 +195,7 @@ const MessageHolder = () => {
                       : "bg-gray-100 text-left"
                   }`}
                 >
-                  <p className="text-sm text-blue-950">{msg.content}</p>
+                  <p className="text-sm text-blue-900">{msg.content}</p>
                 </div>
               </div>
             ))}
