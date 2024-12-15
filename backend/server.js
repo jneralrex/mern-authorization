@@ -61,7 +61,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "*", // Replace with your frontend URL in production
+    origin: "https://loveconnect-4i23.onrender.com", // Replace with your frontend URL in production
     methods: ["GET", "POST"],
   },
 });
