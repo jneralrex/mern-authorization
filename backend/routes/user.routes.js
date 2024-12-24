@@ -1,5 +1,5 @@
 const express = require("express");
-const { verifyToken } = require("../utils/verifyUser");
+const { verifyToken } = require("../utils/authenticateToken");
 const {
   updateProfilePhoto,
   signUpload,
@@ -10,39 +10,15 @@ const {
   updateUser,
 } = require("../controllers/user.controller");
 
-// Router for get all users
-const getEveryUser = express.Router();
-getEveryUser.get("/all-users", verifyToken, getAllUsers);
+const userRouter = express.Router();
 
-// Router for get all users
-const getSingleUser = express.Router();
-getSingleUser.get("/individual-user/:id", verifyToken, getUserById);
+// User-related routes
+userRouter.get("/all-users", verifyToken, getAllUsers);
+userRouter.get("/individual-user/:id", verifyToken, getUserById);
+userRouter.patch("/individual-user/:id", verifyToken, updateUser);
+userRouter.post("/sign-upload", verifyToken, signUpload);
+userRouter.patch("/update/:id", verifyToken, updateProfilePhoto);
+userRouter.post("/rollback", verifyToken, rollBackImageWithErrors);
+userRouter.delete("/delete/:id", verifyToken, deleteAccount);
 
-// Router for get all users
-const patchUser = express.Router();
-patchUser.patch("/individual-user/:id", verifyToken, updateUser);
-
-// Router for signing requests
-const uploadRoutes = express.Router();
-uploadRoutes.post("/sign-upload", signUpload); // POST /api/profile-picture-upload/sign-upload
-
-// Router for profile picture updates
-const profilePicPatchRoute = express.Router();
-profilePicPatchRoute.patch("/update/:id", verifyToken, updateProfilePhoto); // PATCH /api/profile-picture-update/update/:id
-
-// Router for rolling back images
-const rollbackRoutes = express.Router();
-rollbackRoutes.post("/rollback", rollBackImageWithErrors); // POST /api/profile-picture-upload/rollback
-
-const deleteMyAccount = express.Router();
-deleteMyAccount.delete("/delete/:id", verifyToken, deleteAccount); // POST /api/profile-picture-upload/rollback
-
-module.exports = {
-  getEveryUser,
-  getSingleUser,
-  patchUser,
-  uploadRoutes,
-  profilePicPatchRoute,
-  rollbackRoutes,
-  deleteMyAccount,
-};
+module.exports = userRouter;

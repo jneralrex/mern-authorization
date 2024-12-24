@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   currentUser: null,
-  singInLoader: false,
+  loadingSignIn: false,
   loadingSignUp: false,
   loadingUserDelete: false,
   signInError: null,
@@ -16,18 +16,18 @@ const UserSlice = createSlice({
   initialState,
   reducers: {
     signInStart: (state) => {
-      state.singInLoader = true;
+      state.loadingSignIn = true;
     },
     signInSuccess: (state, action) => {
-      state.singInLoader = false;
+      state.loadingSignIn = false;
       state.currentUser = action.payload;
       state.signInError = null; // Reset error on success
       state.token = action.payload.token;
     },
     signInFailure: (state, action) => {
-      state.singInLoader = false;
+      state.loadingSignIn = false;
       state.signInError = action.payload; // Store the error message
-    },
+    },    
     signUpStart: (state) => {
       state.loadingSignUp = true;
     },

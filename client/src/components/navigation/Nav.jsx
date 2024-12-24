@@ -5,7 +5,6 @@ import MessageHolder from "./MessageHolder";
 
 const Nav = () => { 
   const { currentUser } = useSelector((state) => state.user);
-
   return (
     <>
       <header className="bg-blue-600 text-white py-4">
@@ -15,7 +14,7 @@ const Nav = () => {
             {currentUser ? (
               <Link to="/nav/profile">
                 <img 
-                  src={currentUser.profilePhoto} 
+                  src={currentUser.user.profilePhoto} 
                   alt="profile picture" 
                   title="Profile" 
                   className="rounded-full object-cover h-7 w-7" 

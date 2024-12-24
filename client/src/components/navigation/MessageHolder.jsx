@@ -10,6 +10,7 @@ import {
 import { useSelector } from "react-redux";
 import { generateRoomId } from "../../../../backend/utils/roomId.js";
 import axios from "axios";
+import API from "../../utils/Api.jsx";
 
 const socket = io(); // Replace with your backend URL
 
@@ -33,12 +34,13 @@ const MessageHolder = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axios.get("/api/get/all-users", {
+        const res = await API.get("/user/all-users", {
           headers: {
             Authorization: `Bearer ${currentUser.token}`,
           },
         });
         setUsers(res.data.users || []);
+       console.log("get all users",res)
       } catch (err) {
         console.error(err);
         setError("Failed to fetch users. Please try again.");
@@ -54,25 +56,38 @@ const MessageHolder = () => {
   }, [isOpen, selectedPerson]);
 
   useEffect(() => {
-    socket.on("chat_history", (history) => setMessages(history));
-    socket.on("receive_message", (data) =>
-      setMessages((prev) => [...prev, data])
-    );
-    socket.on("user_typing", ({ isTyping }) => setIsTyping(isTyping));
-
-    return () => {
-      socket.off("chat_history");
-      socket.off("receive_message");
-      socket.off("user_typing");
-    };
-  }, []);
-
+    if (selectedPerson) {
+      const room = generateRoomId(currentUser._id, selectedPerson._id);
+  
+      // Listen for incoming chat history
+      socket.emit("join_room", room);
+  
+      socket.on("chat_history", (history) => {
+        setMessages(history); // Update messages only for the selected person
+      });
+  
+      socket.on("receive_message", (data) => {
+        // Add the incoming message to the current messages
+        if (data.room === room) {
+          setMessages((prev) => [...prev, data]);
+        }
+      });
+  
+      socket.on("user_typing", ({ isTyping }) => setIsTyping(isTyping));
+  
+      return () => {
+        socket.off("chat_history");
+        socket.off("receive_message");
+        socket.off("user_typing");
+      };
+    }
+  }, [selectedPerson, currentUser]);
+  
   const toggleMessagePanel = () => setIsOpen(!isOpen);
 
   const handlePersonClick = (person) => {
     setSelectedPerson(person);
     socket.emit("join_room", generateRoomId(currentUser._id, person._id));
-    setMessages([]);
   };
 
   const handleSendMessage = () => {
@@ -89,14 +104,11 @@ const MessageHolder = () => {
     setMessage("");
   };
 
-  const handleTyping = (e) => {
-    setMessage(e.target.value);
-    socket.on("user_typing", ({ isTyping, room }) => {
-      if (room === roomId) {
-        setIsTyping(isTyping);
-      }
-    });
-      };
+const handleTyping = (e) => {
+  setMessage(e.target.value);
+  socket.emit("user_typing", { isTyping: e.target.value.length > 0, room: roomId });
+};
+
 
   const handleVoiceNote = () => setIsRecording(!isRecording);
 
@@ -146,7 +158,7 @@ const MessageHolder = () => {
               alt=""
               className="h-10 w-10 rounded-full object-cover"
             />
-            <p>{user.username}</p>
+            <p className="text-black">{user.username}</p>
           </div>
         </li>
       ))}

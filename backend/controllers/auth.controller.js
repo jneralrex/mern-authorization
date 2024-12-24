@@ -6,6 +6,10 @@ const generateUsernameSuggestions = require("../utils/generateUsernameSuggestion
 const { nanoid } = require("nanoid");
 const crypto = require("crypto");
 const { config } = require("../config/config.js");
+const { encryptToken, decryptToken } = require("../utils/tokenEncryption.js");
+const { generateAccessToken } = require("../utils/generateAccessToken.js");
+const logger = require("../utils/logger.js");
+const { generateRefreshToken } = require("../utils/generateRefreshToken.js");
 
 const signUp = async (req, res, next) => {
   const { username, email, password } = req.body;
@@ -44,60 +48,116 @@ const signUp = async (req, res, next) => {
 const signIn = async (req, res, next) => {
   const { usernameOrEmail, password } = req.body;
 
+  // Log the incoming request
+  logger.info(`SignIn attempt for: ${usernameOrEmail}`);
+
   try {
     if (!usernameOrEmail || !password) {
-      return next(
-        errorHandler(400, "Username/Email and password are required")
-      );
+      logger.warn(`Missing credentials for: ${usernameOrEmail}`);
+      return next(errorHandler(400, "Username/Email and password are required"));
     }
 
     const sanitizedInput = usernameOrEmail.trim().toLowerCase();
-
     const validUser = await User.findOne({
       $or: [{ username: sanitizedInput }, { email: sanitizedInput }],
     }).select("+password");
 
     if (!validUser) {
+      logger.warn(`Failed login attempt: ${usernameOrEmail}`);
       return next(errorHandler(404, "Invalid credentials"));
     }
 
-    const validPassword = bcrypt.compareSync(password, validUser.password);
+    const validPassword = await bcrypt.compare(password, validUser.password);
     if (!validPassword) {
+      logger.warn(`Invalid password attempt for: ${usernameOrEmail}`);
       return next(errorHandler(401, "Invalid credentials"));
     }
 
-    const token = jwt.sign({ id: validUser._id }, config.jwt_s, {
+    // Log successful login
+    logger.info(`Successful login for: ${validUser.username}`);
+
+    // Generate access token
+    const accessToken = jwt.sign({ id: validUser._id }, config.jwt_s, {
       expiresIn: config.jwt_expiration,
     });
 
-    const cookieExpiration = new Date(
-      Date.now() + Number(config.cookie_expiration)
-    );
+    // Generate and encrypt refresh token
+    const refreshToken = jwt.sign({ id: validUser._id }, config.jwt_s, {
+      expiresIn: config.refresh_token_expiration,
+    });
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-      expires: cookieExpiration,
-    };
+    // Encrypt and save refresh token to the database
+    const encryptedRefreshToken = encryptToken(refreshToken);
+    validUser.refreshToken = encryptedRefreshToken;
+    await validUser.save();
 
-    const { password: hashedPassword, ...rest } = validUser.toObject();
+    // Return the user data excluding password and refreshToken
+    const { password: _, refreshToken: __, ...userData } = validUser.toObject();
+
+    const cookieExpiration = Number(config.cookie_expiration);
+    const refreshTokenExpiration = Number(config.refresh_token_expiration);
+
+    if (isNaN(cookieExpiration) || isNaN(refreshTokenExpiration)) {
+      logger.error('Invalid cookie or refresh token expiration time');
+      return next(errorHandler(500, "Invalid cookie expiration or refresh token expiration"));
+    }
 
     res
-      .cookie("accesstoken", token, cookieOptions)
+      .cookie("accesstoken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Lax",
+        expires: new Date(Date.now() + cookieExpiration),
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+        expires: new Date(Date.now() + refreshTokenExpiration),
+      })
       .status(200)
-      .json({ token, ...rest });
-  } catch (error) {
-    if (
-      error.code === "ENOTFOUND" ||
-      (error.message && error.message.includes("ECONNRESET"))
-    ) {
-      return res.status(500).json({
-        success: false,
-        message: "Check your internet connection and try again",
+      .json({
+        token: accessToken,
+        user: userData,
       });
+
+    logger.info(`Tokens generated and sent for: ${validUser.username}`);
+
+  } catch (error) {
+    logger.error(`Error during signIn: ${error.message}`);
+    next(error); // Pass error to the global error handler
+  }
+};
+
+const handleRefreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    // Decrypt and verify the stored token
+    const user = await User.findOne({ refreshToken: encryptToken(refreshToken) });
+
+    if (!user) {
+      return res.status(403).json({ message: "Invalid refresh token" });
     }
-    next(error);
+
+    const storedToken = decryptToken(user.refreshToken);
+    if (storedToken !== refreshToken) {
+      return res.status(403).json({ message: "Token mismatch" });
+    }
+
+    // Proceed to generate new tokens
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+
+    // Encrypt and store the new refresh token
+    user.refreshToken = encryptToken(newRefreshToken);
+    await user.save();
+
+    res.cookie("refreshToken", newRefreshToken, { httpOnly: true, secure: true });
+    return res.status(200).json({ accessToken: newAccessToken });
+  } catch (error) {
+    console.error("Error handling refresh token:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -149,7 +209,12 @@ const google = async (req, res, next) => {
 };
 
 const signout = (req, res) => {
-  res.clearCookie("accesstoken").status(200).json("signout success");
+  res
+    .clearCookie("accesstoken")
+    .clearCookie("refreshToken")
+    .status(200)
+    .json("Signout success");
 };
 
-module.exports = { signUp, signIn, google, signout };
+
+module.exports = { signUp, signIn, google, signout, handleRefreshToken};

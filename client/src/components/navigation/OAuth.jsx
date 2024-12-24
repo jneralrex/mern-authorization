@@ -69,6 +69,7 @@ import { useDispatch } from 'react-redux';
 import axios from 'axios';  // Make sure to import axios
 import { signInSuccess } from '../../redux/user/UserSlice';
 import { useNavigate } from 'react-router-dom';
+import API from '../../utils/Api';
 
 const OAuth = () => {
   const dispatch = useDispatch();
@@ -83,7 +84,7 @@ const OAuth = () => {
 
       // Wait for the sign-in process to complete
       const result = await signInWithPopup(auth, provider);
-      const postRes = await axios.post('/api/auth/google', {
+      const postRes = await API.post(`/auth/google`, {
         username: result.user.displayName,
         email: result.user.email,
         profilePhoto: result.user.photoURL

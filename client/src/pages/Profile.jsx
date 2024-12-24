@@ -3,16 +3,19 @@ import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { deleteUserFailure, deleteUserStart, deleteUserSuccess, setProfilePhoto, signOut } from "../redux/user/UserSlice";
 import { useNavigate } from "react-router-dom";
+import API from "../utils/Api";
 
 const Profile = () => {
   const { currentUser } = useSelector((state) => state.user);
+  console.log("current user",currentUser);
+
   const dispatch = useDispatch(); // Initialize dispatch
   const navigate = useNavigate()
   const fileRef = useRef(null);
   const [profilePhoto, setProfilePhotoState] = useState(
-    currentUser.profilePhoto
+    currentUser.user.profilePhoto
   );
-  const [previewPhoto, setPreviewPhoto] = useState(currentUser.profilePhoto); // For image preview
+  const [previewPhoto, setPreviewPhoto] = useState(currentUser.user.profilePhoto); // For image preview
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null); // To handle errors
   const [imageProgress, setImageProgress] = useState(0); // To track progress
@@ -52,7 +55,7 @@ const handleFileUpload = async (file) => {
     }
 
     // 1. Get the signed upload details from the backend
-    const { data } = await axios.post("/api/profile-picture-upload/sign-upload");
+    const { data } = await API.post(`/profile-picture-upload/sign-upload`);
     const { signature, timestamp, cloudName, apiKey } = data;
 
     // 2. Prepare the upload form data
@@ -86,8 +89,8 @@ const handleFileUpload = async (file) => {
     uploadedPublicId = uploadRes.data.public_id; // Store public ID for rollback
 
     // 4. Send the new photo URL and publicId to your backend to update the user profile
-    await axios.patch(
-      `/api/profile-picture-update/update/${currentUser._id}`,
+    await API.patch(
+      `/profile-picture-update/update/${currentUser._id}`,
       {
         profilePhoto: transformedUrl,  // URL of the uploaded photo
         publicId: uploadedPublicId,    // Public ID of the uploaded photo
@@ -150,7 +153,7 @@ const handleFileChange = (e) => {
   
       // Get the token from localStorage or cookies
   
-      const res = await axios.delete(`/api/delete-account/delete/${currentUser._id}`, {
+      const res = await API.delete(`/delete-account/delete/${currentUser._id}`, {
         headers: {
           Authorization: `Bearer ${currentUser.token}`,
         },
@@ -185,13 +188,14 @@ const handleSignout = async(e) =>{
   }
 }
 
+
 return (
   <div className="bg-gray-100 min-h-screen">
     {/* Profile Header */}
     <div className="bg-blue-600 text-white py-6">
       <div className="container mx-auto text-center">
         <h1 className="text-3xl font-bold">Your Profile</h1>
-        <p className="text-lg mt-2">{`Hello, ${currentUser.username}`}</p>
+        <p className="text-lg mt-2">{`Hello, ${currentUser.user.username}`}</p>
       </div>
     </div>
 
