@@ -8,8 +8,8 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import generateRoomId  from "../../../../backend/utils/roomId.js";
 import API from "../../utils/Api.jsx";
+import generateRoomId from "../../utils/RoomId.jsx";
 
 const socket = io(); // Replace with your backend URL
 
