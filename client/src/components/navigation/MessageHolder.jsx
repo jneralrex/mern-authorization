@@ -8,7 +8,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import { generateRoomId } from "../../../../backend/utils/roomId.js";
+import generateRoomId  from "../../../../backend/utils/roomId.js";
 import axios from "axios";
 import API from "../../utils/Api.jsx";
 
