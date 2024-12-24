@@ -9,7 +9,6 @@ import {
 } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import generateRoomId  from "../../../../backend/utils/roomId.js";
-import axios from "axios";
 import API from "../../utils/Api.jsx";
 
 const socket = io(); // Replace with your backend URL
@@ -106,7 +105,12 @@ const MessageHolder = () => {
 
 const handleTyping = (e) => {
   setMessage(e.target.value);
-  socket.emit("user_typing", { isTyping: e.target.value.length > 0, room: roomId });
+  socket.on("user_typing", ({ isTyping, room }) => {
+    if (room === roomId) {
+      setIsTyping(isTyping);
+    }
+  });
+  
 };
 
 
