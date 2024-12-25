@@ -10,7 +10,7 @@ const setupSocketIO = require("./config/socket/socket.js");
 const router = require('./routes/refreshToken.js');
 const authRateLimiter = require("./utils/sensitiveAttempt.limiiter.js"); // Rate limiter for too many login attempts to avaoid brute force attack
 // const loginAttemptDelay = require("./utils/failedLoginAttempt.js"); Delay login attempt in case of several trial to avaoid brute force
-const cors = require("cors"); //incase backend and frontend url changes, for now they are hosted on same url
+// const cors = require("cors"); //incase backend and frontend url changes, for now they are hosted on same url
 
 const app = express();
 const port = config.port;
@@ -19,13 +19,13 @@ const port = config.port;
 connectDb();
 
 app.set('trust proxy', true); //Enable trust proxy, to allow secure cookies over https
-app.use(
-  cors({
-    origin: process.env.FRONT_END_BASE_URL,
-    methods: ["GET", "POST", "PATCH", "DELETE"],
-    credentials: true, // Allow sending cookies
-  })
-); //incase backend and frontend url changes, for now they are hosted on same url, cors should be reconfigured accordingly
+//app.use(
+//   cors({
+//     origin: process.env.DEVELOPMENT_BASE_URL,
+//     methods: ["GET", "POST", "PATCH", "DELETE"],
+//     credentials: true, // Allow sending cookies
+//   })
+// ); //incase backend and frontend url changes, for now they are hosted on same url, cors should be reconfigured accordingly
 
 
 app.use(express.json());
