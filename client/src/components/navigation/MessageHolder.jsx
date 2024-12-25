@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { FaCamera, FaMicrophone, FaSmile, FaPhoneAlt, FaTimes } from "react-icons/fa";
 import { useSelector } from "react-redux";
