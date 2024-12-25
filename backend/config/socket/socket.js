@@ -3,7 +3,7 @@ const Message = require("../../models/message.schema.model");
 const User = require("../../models/user.model");
 const generateRoomId = require("../../utils/roomId");
 const messageValidationSchema = require("../../models/messageValidationSchema");
-//const uploadMedia = require("../../utils/file/upload");
+const uploadMedia = require("../../utils/file/upload");
 
 const setupSocketIO = (server) => {
   const io = new Server(server, {
