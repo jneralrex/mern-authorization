@@ -18,7 +18,7 @@ const port = config.port;
 // Connect to Database
 connectDb();
 
-
+app.set('trust proxy', true); //Enable trust proxy, to allow secure cookies over https
 app.use(
   cors({
     origin: process.env.FRONT_END_BASE_URL,

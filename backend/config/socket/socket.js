@@ -16,31 +16,31 @@ const setupSocketIO = (server) => {
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
 
-    socket.on("join_room", async ({ currentUser, selectedPerson }) => {
-      console.log("Current user:", currentUser);
-      console.log("Selected person:", selectedPerson);
+  socket.on("join_room", async ({ currentUser, selectedPerson }) => {
+  console.log("Current user:", currentUser);
+  console.log("Selected person:", selectedPerson);
 
-      if (!currentUser || !currentUser._id || !selectedPerson || !selectedPerson._id) {
-        return socket.emit("error", "Invalid user data provided.");
-      }
+  if (!currentUser || !currentUser._id || !selectedPerson || !selectedPerson._id) {
+    return socket.emit("error", "Invalid user data provided.");
+  }
 
-      try {
-        const roomId = generateRoomId(currentUser, selectedPerson);
-        socket.join(roomId);
-        console.log(`${currentUser.username} joined room: ${roomId}`);
+  try {
+    const roomId = generateRoomId(currentUser, selectedPerson);
+    socket.join(roomId);
+    console.log(`${currentUser.username} joined room: ${roomId}`);
 
-        const messages = await Message.find({ room: roomId })
-          .populate("sender", "username profilePhoto")
-          .sort({ timestamp: 1 })
-          .limit(50);
+    const messages = await Message.find({ room: roomId })
+      .populate("sender", "username profilePhoto")
+      .sort({ timestamp: 1 })
+      .limit(50);
 
-        console.log("Messages fetched from DB:", messages);
-        socket.emit("chat_history", messages);
-      } catch (error) {
-        console.error("Error fetching chat history:", error.message);
-        socket.emit("error", "Failed to fetch chat history.");
-      }
-    });
+    console.log("Messages fetched from DB:", messages);
+    socket.emit("chat_history", messages);
+  } catch (error) {
+    console.error("Error fetching chat history:", error.message);
+    socket.emit("error", "Failed to fetch chat history.");
+  }
+});
 
     socket.on("send_message", async (data) => {
       const { error, value } = messageValidationSchema.validate(data);

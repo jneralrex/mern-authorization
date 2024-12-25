@@ -50,33 +50,35 @@ const MessageHolder = () => {
     }
   }, [isOpen, selectedPerson]);
 
-  useEffect(() => {
-    if (selectedPerson) {
-      const room = generateRoomId(currentUser._id, selectedPerson._id);
+useEffect(() => {
+  if (selectedPerson) {
+    const room = generateRoomId(currentUser._id, selectedPerson._id);
 
-      // Listen for incoming chat history
-      socket.emit("join_room", room);
+    console.log("Emitting join_room with:", { currentUser, selectedPerson });
 
-      socket.on("chat_history", (history) => {
-        setMessages(history); // Update messages only for the selected person
-      });
+    // Emit join_room event with currentUser and selectedPerson
+    socket.emit("join_room", { currentUser, selectedPerson });
 
-      socket.on("receive_message", (data) => {
-        // Add the incoming message to the current messages
-        if (data.room === room) {
-          setMessages((prev) => [...prev, data]);
-        }
-      });
+    socket.on("chat_history", (history) => {
+      setMessages(history); // Update messages only for the selected person
+    });
 
-      socket.on("user_typing", ({ isTyping }) => setIsTyping(isTyping));
+    socket.on("receive_message", (data) => {
+      // Add the incoming message to the current messages
+      if (data.room === room) {
+        setMessages((prev) => [...prev, data]);
+      }
+    });
 
-      return () => {
-        socket.off("chat_history");
-        socket.off("receive_message");
-        socket.off("user_typing");
-      };
-    }
-  }, [selectedPerson, currentUser]);
+    socket.on("user_typing", ({ isTyping }) => setIsTyping(isTyping));
+
+    return () => {
+      socket.off("chat_history");
+      socket.off("receive_message");
+      socket.off("user_typing");
+    };
+  }
+}, [selectedPerson, currentUser]);
 
   const toggleMessagePanel = () => setIsOpen(!isOpen);
 
