@@ -1,7 +1,9 @@
 const { Server } = require("socket.io");
 const Message = require("../../models/message.schema.model");
 const User = require("../../models/user.model");
-const generateRoomId = require("../../utils/roomId"); 
+const generateRoomId = require("../../utils/roomId");
+const messageValidationSchema = require("../../models/messageValidationSchema");
+const uploadMedia = require("../../utils/file/upload");
 
 const setupSocketIO = (server) => {
   const io = new Server(server, {
@@ -14,93 +16,75 @@ const setupSocketIO = (server) => {
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
 
-    // User joins a room
-    // socket.on("join_room", async ({ currentUser, selectedPerson }) => {
-    //   console.log("Current user:", currentUser);
-    //   console.log("Selected person:", selectedPerson);
-    
-    //   if (!currentUser || !currentUser._id || !selectedPerson || !selectedPerson._id) {
-    //     return socket.emit("error", "Invalid user data provided.");
-    //   }
-    
-    //   try {
-    //     const roomId = generateRoomId(currentUser._id, selectedPerson._id);
-    //     socket.join(roomId);
-    
-    //     // Fetch chat history
-    //     const messages = await Message.find({ room: roomId })
-    //       .populate("sender", "username profilePhoto")
-    //       .sort({ timestamp: 1 })
-    //       .limit(50);
-    
-    //     socket.emit("chat_history", messages);
-    //   } catch (error) {
-    //     console.error("Error fetching chat history:", error.message);
-    //     socket.emit("error", "Failed to fetch chat history.");
-    //   }
-    // });
-    
     socket.on("join_room", async ({ currentUser, selectedPerson }) => {
       console.log("Current user:", currentUser);
       console.log("Selected person:", selectedPerson);
-    
+
       if (!currentUser || !currentUser._id || !selectedPerson || !selectedPerson._id) {
         return socket.emit("error", "Invalid user data provided.");
       }
-      
+
       try {
         const roomId = generateRoomId(currentUser, selectedPerson);
-        socket.join(roomId); // Join the room
+        socket.join(roomId);
         console.log(`${currentUser.username} joined room: ${roomId}`);
 
-        // Fetch chat history for the room
         const messages = await Message.find({ room: roomId })
           .populate("sender", "username profilePhoto")
           .sort({ timestamp: 1 })
-          .limit(50); // Limit messages to 50
+          .limit(50);
 
         console.log("Messages fetched from DB:", messages);
-        socket.emit("chat_history", messages); // Send chat history to the user
-
+        socket.emit("chat_history", messages);
       } catch (error) {
         console.error("Error fetching chat history:", error.message);
         socket.emit("error", "Failed to fetch chat history.");
       }
     });
 
-    // User sends a message
-    socket.on("send_message", async ({ currentUser, selectedPerson, content }) => {
+    socket.on("send_message", async (data) => {
+      const { error, value } = messageValidationSchema.validate(data);
+      if (error) {
+        return socket.emit("error", `Validation error: ${error.message}`);
+      }
+
+      const { currentUser, selectedPerson, content, mediaFile, mediaType } = value;
+
       try {
-        // Validate user exists
         const user = await User.findById(currentUser._id);
         if (!user) {
           return socket.emit("error", "User not found.");
         }
 
         const roomId = generateRoomId(currentUser, selectedPerson);
+
+        let mediaUrl = null;
+        if (mediaFile) {
+          mediaUrl = await uploadMedia(mediaFile, "chat_media");
+        }
+
         const newMessage = new Message({
           sender: currentUser._id,
-          content: content,
+          content,
           room: roomId,
+          mediaUrl,
+          mediaType,
         });
 
         await newMessage.save();
-        console.log("Message saved successfully:", newMessage);
 
         const populatedMessage = await newMessage.populate("sender", "username profilePhoto");
-        io.to(roomId).emit("receive_message", populatedMessage); // Emit message to all users in the room
 
-        console.log("Populated message emitted:", populatedMessage);
-      } catch (error) {
-        console.error("Error saving message:", error.message);
+        io.to(roomId).emit("receive_message", populatedMessage);
+        console.log("Message sent:", populatedMessage);
+      } catch (err) {
+        console.error("Error sending message:", err.message);
         socket.emit("error", "Failed to send message.");
       }
     });
 
-    // Handle user disconnection
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
-      // Optional: clean up or leave room if necessary
     });
   });
 

@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
-import {
-  FaCamera,
-  FaMicrophone,
-  FaSmile,
-  FaPhoneAlt,
-  FaTimes,
-} from "react-icons/fa";
+import { FaCamera, FaMicrophone, FaSmile, FaPhoneAlt, FaTimes } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import API from "../../utils/Api.jsx";
 import generateRoomId from "../../utils/RoomId.jsx";
@@ -24,6 +18,8 @@ const MessageHolder = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [file, setFile] = useState(null);
 
   const roomId =
     selectedPerson && currentUser
@@ -39,7 +35,7 @@ const MessageHolder = () => {
           },
         });
         setUsers(res.data.users || []);
-       console.log("get all users",res)
+        console.log("get all users", res);
       } catch (err) {
         console.error(err);
         setError("Failed to fetch users. Please try again.");
@@ -57,23 +53,23 @@ const MessageHolder = () => {
   useEffect(() => {
     if (selectedPerson) {
       const room = generateRoomId(currentUser._id, selectedPerson._id);
-  
+
       // Listen for incoming chat history
       socket.emit("join_room", room);
-  
+
       socket.on("chat_history", (history) => {
         setMessages(history); // Update messages only for the selected person
       });
-  
+
       socket.on("receive_message", (data) => {
         // Add the incoming message to the current messages
         if (data.room === room) {
           setMessages((prev) => [...prev, data]);
         }
       });
-  
+
       socket.on("user_typing", ({ isTyping }) => setIsTyping(isTyping));
-  
+
       return () => {
         socket.off("chat_history");
         socket.off("receive_message");
@@ -81,7 +77,7 @@ const MessageHolder = () => {
       };
     }
   }, [selectedPerson, currentUser]);
-  
+
   const toggleMessagePanel = () => setIsOpen(!isOpen);
 
   const handlePersonClick = (person) => {
@@ -90,31 +86,60 @@ const MessageHolder = () => {
   };
 
   const handleSendMessage = () => {
-    if (!message.trim()) return;
+    if (!message.trim() && !file) return;
 
     const messageData = {
       content: message.trim(),
       senderId: currentUser._id,
       receiverId: selectedPerson._id,
       room: roomId,
+      mediaFile: file,
+      mediaType: file ? file.type.split("/")[0] : null,
     };
 
     socket.emit("send_message", messageData);
     setMessage("");
+    setFile(null);
   };
 
-const handleTyping = (e) => {
-  setMessage(e.target.value);
-  socket.on("user_typing", ({ isTyping, room }) => {
-    if (room === roomId) {
-      setIsTyping(isTyping);
-    }
-  });
-  
-};
+  const handleTyping = (e) => {
+    setMessage(e.target.value);
+    socket.on("user_typing", ({ isTyping, room }) => {
+      if (room === roomId) {
+        setIsTyping(isTyping);
+      }
+    });
+  };
 
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
 
-  const handleVoiceNote = () => setIsRecording(!isRecording);
+  // const handleVoiceNote = async () => {
+  //   if (isRecording) {
+  //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  //     const recorder = new MediaRecorder(stream);
+
+  //     recorder.ondataavailable = (e) => {
+  //       setAudioBlob(e.data);
+  //     };
+
+  //     recorder.start();
+
+  //     setIsRecording(true);
+
+  //     setTimeout(() => {
+  //       recorder.stop();
+  //       stream.getTracks().forEach((track) => track.stop()); // Stop the stream
+  //     }, 5000); // Record for 5 seconds (adjust as needed)
+  //   } else {
+  //     // Logic for sending the audio file
+  //     const formData = new FormData();
+  //     formData.append("file", audioBlob, "voiceNote.wav");
+
+  //     await API.post("/send-voice-note", formData);
+  //   }
+  // };
 
   const handleCloseInbox = () => setSelectedPerson(null);
 
@@ -147,35 +172,33 @@ const handleTyping = (e) => {
 
       {/* User List */}
       {isOpen && !selectedPerson && (
-  <div className="flex-1 overflow-y-auto p-4">
-    <ul>
-      {users.length === 0 && !error && <div className="spinner"></div>}
-      {users.map((user) => (
-        <li
-          key={user._id}
-          className="p-2 border-b border-gray-200 text-red-700 cursor-pointer"
-          onClick={() => handlePersonClick(user)}
-        >
-          <div className="flex flex-row items-center gap-1">
-            <img
-              src={user.profilePhoto}
-              alt=""
-              className="h-10 w-10 rounded-full object-cover"
-            />
-            <p className="text-black">{user.username}</p>
-          </div>
-        </li>
-      ))}
-    </ul>
-    {error && <p className="text-red-600 mt-2">{error}</p>}
-  </div>
-)}
-
+        <div className="flex-1 overflow-y-auto p-4">
+          <ul>
+            {users.length === 0 && !error && <div className="spinner"></div>}
+            {users.map((user) => (
+              <li
+                key={user._id}
+                className="p-2 border-b border-gray-200 text-red-700 cursor-pointer"
+                onClick={() => handlePersonClick(user)}
+              >
+                <div className="flex flex-row items-center gap-1">
+                  <img
+                    src={user.profilePhoto}
+                    alt=""
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                  <p className="text-black">{user.username}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {error && <p className="text-red-600 mt-2">{error}</p>}
+        </div>
+      )}
 
       {/* Chat Section */}
       {isOpen && selectedPerson && (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Chat Header */}
           {/* Chat Header */}
           <div className="flex items-center justify-between p-4 bg-gray-100 border-b">
             <div className="flex items-center space-x-3">
@@ -212,6 +235,13 @@ const handleTyping = (e) => {
                   }`}
                 >
                   <p className="text-sm text-blue-900">{msg.content}</p>
+                  {msg.mediaUrl && (
+                    <img
+                      src={msg.mediaUrl}
+                      alt="media"
+                      className="mt-2 rounded-lg"
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -226,8 +256,17 @@ const handleTyping = (e) => {
                 isRecording ? "text-red-600" : "text-blue-600"
               }`}
               size={24}
-              onClick={handleVoiceNote}
+             // onClick={handleVoiceNote}
             />
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="hidden"
+              id="file-upload"
+            />
+            <label htmlFor="file-upload">
+              <FaCamera className="text-blue-600 cursor-pointer" size={24} />
+            </label>
             <input
               type="text"
               value={message}
@@ -237,9 +276,9 @@ const handleTyping = (e) => {
             />
             <button
               onClick={handleSendMessage}
-              disabled={!message.trim()}
+              disabled={!message.trim() && !file}
               className={`bg-blue-600 text-white p-2 rounded-md ${
-                !message.trim() ? "opacity-50 cursor-not-allowed" : ""
+                !message.trim() && !file ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
               Send
