@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 const Message = require("../../models/message.schema.model");
-const User = require("../../models/user.model"); // Ensure User model is used
-const generateRoomId = require("../../utils/roomId").default;
+const User = require("../../models/user.model");
+const generateRoomId = require("../../utils/roomId"); 
 
 const setupSocketIO = (server) => {
   const io = new Server(server, {
@@ -16,25 +16,30 @@ const setupSocketIO = (server) => {
 
     // User joins a room
     socket.on("join_room", async ({ currentUser, selectedPerson }) => {
+      console.log("Current user:", currentUser);
+      console.log("Selected person:", selectedPerson);
+    
+      if (!currentUser || !currentUser._id || !selectedPerson || !selectedPerson._id) {
+        return socket.emit("error", "Invalid user data provided.");
+      }
+    
       try {
-        const roomId = generateRoomId(currentUser, selectedPerson);
-        socket.join(roomId); // Join the room
-        console.log(`${currentUser.username} joined room: ${roomId}`);
-
-        // Fetch chat history for the room
+        const roomId = generateRoomId(currentUser._id, selectedPerson._id);
+        socket.join(roomId);
+    
+        // Fetch chat history
         const messages = await Message.find({ room: roomId })
           .populate("sender", "username profilePhoto")
           .sort({ timestamp: 1 })
-          .limit(50); // Limit messages to 50
-
-        console.log("Messages fetched from DB:", messages);
-        socket.emit("chat_history", messages); // Send chat history to the user
-
+          .limit(50);
+    
+        socket.emit("chat_history", messages);
       } catch (error) {
         console.error("Error fetching chat history:", error.message);
         socket.emit("error", "Failed to fetch chat history.");
       }
     });
+    
 
     // User sends a message
     socket.on("send_message", async ({ currentUser, selectedPerson, content }) => {

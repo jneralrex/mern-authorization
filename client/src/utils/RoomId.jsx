@@ -1,4 +1,4 @@
-// backend/utils/roomId.js
+// for front end
 export default function generateRoomId(id1, id2) {
     return [id1, id2].sort().join("_");
   }

@@ -9,7 +9,7 @@ const http = require("http");
 const setupSocketIO = require("./config/socket/socket.js");
 const router = require('./routes/refreshToken.js');
 const authRateLimiter = require("./utils/sensitiveAttempt.limiiter.js"); // Rate limiter for too many login attempts to avaoid brute force attack
-// const loginAttemptDelay = require("./failedLoginAttempt.js"); //Delay login attempt in case of several trial to avaoid brute force
+// const loginAttemptDelay = require("./utils/failedLoginAttempt.js"); Delay login attempt in case of several trial to avaoid brute force
 const cors = require("cors"); //incase backend and frontend url changes, for now they are hosted on same url
 
 const app = express();
@@ -32,7 +32,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Apply the login attempt delay middleware specifically for the sign-in route
-//app.use("/api/auth/sign-in", loginAttemptDelay);
+// app.use("/api/auth/sign-in", loginAttemptDelay);
 
 // End point for refreshing token
 app.use("/api/auth/refresh-token", router);
