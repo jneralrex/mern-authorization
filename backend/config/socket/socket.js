@@ -8,7 +8,7 @@ const uploadMedia = require("../../utils/file/upload");
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: "*",
+      origin: process.env.FRONT_END_ACCESS_URL,
       methods: ["GET", "POST"],
     },
   });
@@ -25,7 +25,7 @@ const setupSocketIO = (server) => {
       }
 
       try {
-        const roomId = generateRoomId(currentUser, selectedPerson);
+        const roomId = generateRoomId(currentUser._id, selectedPerson._id);
         socket.join(roomId);
         console.log(`${currentUser.username} joined room: ${roomId}`);
 
@@ -43,27 +43,33 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("send_message", async (data) => {
+      console.log("Received message data:", data);
+    
       const { error, value } = messageValidationSchema.validate(data);
       if (error) {
+        console.error("Validation error:", error.message);
         return socket.emit("error", `Validation error: ${error.message}`);
       }
-
+    
       const { currentUser, selectedPerson, content, mediaFile, mediaType } = value;
-
+    
       try {
         const user = await User.findById(currentUser._id);
         if (!user) {
+          console.error("User not found:", currentUser._id);
           return socket.emit("error", "User not found.");
         }
-
-        const roomId = generateRoomId(currentUser, selectedPerson);
-
+    
+        const roomId = generateRoomId(currentUser._id, selectedPerson._id);
+        console.log("Generated room ID:", roomId);
+    
         let mediaUrl = null;
         if (mediaFile) {
           const upload = await uploadMedia.single('mediaFile');
           mediaUrl = upload.path;
+          console.log("Uploaded media URL:", mediaUrl);
         }
-
+    
         const newMessage = new Message({
           sender: currentUser._id,
           content,
@@ -71,11 +77,12 @@ const setupSocketIO = (server) => {
           mediaUrl,
           mediaType,
         });
-
+    
         await newMessage.save();
-
+        console.log("Message saved successfully:", newMessage);
+    
         const populatedMessage = await newMessage.populate("sender", "username profilePhoto");
-
+    
         io.to(roomId).emit("receive_message", populatedMessage);
         console.log("Message sent:", populatedMessage);
       } catch (err) {
