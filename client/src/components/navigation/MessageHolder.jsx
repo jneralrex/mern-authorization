@@ -23,7 +23,7 @@ const MessageHolder = () => {
 
   const roomId =
     selectedPerson && currentUser
-      ? generateRoomId(currentUser._id, selectedPerson._id)
+      ? generateRoomId(currentUser.user._id, selectedPerson._id)
       : null;
 
   useEffect(() => {
@@ -50,41 +50,42 @@ const MessageHolder = () => {
     }
   }, [isOpen, selectedPerson]);
 
-useEffect(() => {
-  if (selectedPerson) {
-    const room = generateRoomId(currentUser._id, selectedPerson._id);
+  useEffect(() => {
+    if (selectedPerson) {
+      const room = generateRoomId(currentUser.user._id, selectedPerson._id);
 
-    console.log("Emitting join_room with:", { currentUser, selectedPerson });
+      console.log("Emitting join_room with:", { currentUser: currentUser.user, selectedPerson });
+      console.log("Current user:", currentUser.user._id);
+      console.log("Selected person:", selectedPerson._id);
+      // Emit join_room event with currentUser and selectedPerson
+      socket.emit("join_room", { currentUser: currentUser.user, selectedPerson });
 
-    // Emit join_room event with currentUser and selectedPerson
-    socket.emit("join_room", { currentUser, selectedPerson });
+      socket.on("chat_history", (history) => {
+        setMessages(history); // Update messages only for the selected person
+      });
 
-    socket.on("chat_history", (history) => {
-      setMessages(history); // Update messages only for the selected person
-    });
+      socket.on("receive_message", (data) => {
+        // Add the incoming message to the current messages
+        if (data.room === room) {
+          setMessages((prev) => [...prev, data]);
+        }
+      });
 
-    socket.on("receive_message", (data) => {
-      // Add the incoming message to the current messages
-      if (data.room === room) {
-        setMessages((prev) => [...prev, data]);
-      }
-    });
+      socket.on("user_typing", ({ isTyping }) => setIsTyping(isTyping));
 
-    socket.on("user_typing", ({ isTyping }) => setIsTyping(isTyping));
-
-    return () => {
-      socket.off("chat_history");
-      socket.off("receive_message");
-      socket.off("user_typing");
-    };
-  }
-}, [selectedPerson, currentUser]);
+      return () => {
+        socket.off("chat_history");
+        socket.off("receive_message");
+        socket.off("user_typing");
+      };
+    }
+  }, [selectedPerson, currentUser]);
 
   const toggleMessagePanel = () => setIsOpen(!isOpen);
 
   const handlePersonClick = (person) => {
     setSelectedPerson(person);
-    socket.emit("join_room", generateRoomId(currentUser._id, person._id));
+    socket.emit("join_room", { currentUser: currentUser.user, selectedPerson: person });
   };
 
   const handleSendMessage = () => {
@@ -92,7 +93,7 @@ useEffect(() => {
 
     const messageData = {
       content: message.trim(),
-      senderId: currentUser._id,
+      senderId: currentUser.user._id,
       receiverId: selectedPerson._id,
       room: roomId,
       mediaFile: file,
@@ -116,32 +117,6 @@ useEffect(() => {
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
-
-  // const handleVoiceNote = async () => {
-  //   if (isRecording) {
-  //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  //     const recorder = new MediaRecorder(stream);
-
-  //     recorder.ondataavailable = (e) => {
-  //       setAudioBlob(e.data);
-  //     };
-
-  //     recorder.start();
-
-  //     setIsRecording(true);
-
-  //     setTimeout(() => {
-  //       recorder.stop();
-  //       stream.getTracks().forEach((track) => track.stop()); // Stop the stream
-  //     }, 5000); // Record for 5 seconds (adjust as needed)
-  //   } else {
-  //     // Logic for sending the audio file
-  //     const formData = new FormData();
-  //     formData.append("file", audioBlob, "voiceNote.wav");
-
-  //     await API.post("/send-voice-note", formData);
-  //   }
-  // };
 
   const handleCloseInbox = () => setSelectedPerson(null);
 
@@ -224,14 +199,14 @@ useEffect(() => {
               <div
                 key={index}
                 className={`flex mb-4 ${
-                  msg.senderId === currentUser._id
+                  msg.senderId === currentUser.user._id
                     ? "justify-end"
                     : "justify-start"
                 }`}
               >
                 <div
                   className={`p-3 rounded-lg max-w-xs ${
-                    msg.senderId === currentUser._id
+                    msg.senderId === currentUser.user._id
                       ? "bg-blue-100 text-right"
                       : "bg-gray-100 text-left"
                   }`}
