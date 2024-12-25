@@ -8,7 +8,7 @@ const uploadMedia = require("../../utils/file/upload");
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: process.env.FRONT_END_ACCESS_URL,
+      origin: "*",
       methods: ["GET", "POST"],
     },
   });
