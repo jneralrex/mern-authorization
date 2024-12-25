@@ -1,6 +1,6 @@
-// File: backend/utils/roomId.js
-const generateRoomId = (id1, id2) => {
-  return [id1, id2].sort().join("_");
+const generateRoomId = (user1, user2) => {
+  const ids = [user1._id, user2._id].sort();
+  return `${ids[0]}_${ids[1]}`;
 };
 
-module.exports = generateRoomId; // Use CommonJS export
+module.exports = generateRoomId;
